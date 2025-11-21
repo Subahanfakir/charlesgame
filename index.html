@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charles River Estuary Lab: Urban Oceanography</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.95);
+            --water-blue: rgba(2, 132, 199, 0.8);
+            --water-algae: rgba(22, 163, 74, 0.9);
+            --sky-day: linear-gradient(to bottom, #38bdf8, #bae6fd);
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --leaf: #d97706;
+        }
+
+        body {
+            margin: 0; height: 100vh; width: 100vw; overflow: hidden;
+            background: var(--bg-dark); color: white;
+            font-family: 'Inter', sans-serif;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- VIEWPORT (THE RIVER) --- */
+        .viewport {
+            flex-grow: 1; position: relative; overflow: hidden;
+            background: var(--sky-day);
+        }
+
+        /* --- SKYLINE --- */
+        .skyline {
+            position: absolute; bottom: 35%; right: 0; width: 100%;
+            display: flex; justify-content: flex-end; align-items: flex-end;
+            padding-right: 20px; gap: 8px; opacity: 0.7; pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bldg { background: #475569; position: relative; border: 1px solid #334155; }
+        
+        /* BU CDS (The Jenga Building) */
+        .bu-cds {
+            display: flex; flex-direction: column-reverse; align-items: center;
+            width: 60px; margin-right: 10px;
+        }
+        .cds-block {
+            width: 100%; height: 18px; background: #64748b;
+            border: 1px solid #334155;
+            position: relative;
+        }
+        /* The famous shift effect */
+        .cds-block:nth-child(2n) { transform: translateX(5px); width: 90%; }
+        .cds-block:nth-child(3n) { transform: translateX(-5px); width: 95%; }
+        
+        /* Prudential */
+        .pru { width: 50px; height: 240px; border-top: 4px solid #94a3b8; background: #52525b; }
+        .pru:after { content:''; position:absolute; top:10px; left:10px; width:4px; height:100%; background:rgba(255,255,255,0.1); }
+        
+        /* Hancock */
+        .hancock { width: 45px; height: 280px; background: #3f3f46; transform: skewY(-4deg); border-left: 1px solid #94a3b8; margin-left: 10px; }
+        
+        /* Citgo Sign */
+        .citgo-container { display: flex; flex-direction: column; align-items: center; margin-right: 30px; }
+        .citgo-sign { 
+            width: 35px; height: 35px; background: white; 
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5); margin-bottom: -5px; z-index: 2;
+        }
+        .citgo-post { width: 4px; height: 40px; background: #cbd5e1; }
+        .citgo-tri { 
+            width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 20px solid #dc2626;
+            animation: pulse 2s infinite; 
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Generic Fillers */
+        .generic-tall { width: 30px; height: 180px; background: #52525b; }
+        .generic-short { width: 40px; height: 100px; background: #475569; }
+
+        /* --- LAND & TREES --- */
+        /* The Ground */
+        .bank {
+            position: absolute; bottom: 30%; left: 0; width: 100%; height: 150px;
+            background: #365314; 
+            /* Sloped bank using clip-path */
+            clip-path: polygon(0 0, 100% 20%, 100% 100%, 0% 100%);
+            z-index: 1;
+        }
+        
+        /* Roots Texture inside the bank */
+        .roots {
+            position: absolute; bottom: -50px; left: 0; width: 100%; height: 100px;
+            background: repeating-linear-gradient(45deg, #291d18 0, #291d18 2px, transparent 2px, transparent 15px);
+            opacity: 0.5; z-index: 2;
+        }
+
+        /* Trees Container (Fixed: Moved outside .bank so they don't clip) */
+        .vegetation-layer {
+            position: absolute; bottom: 30%; left: 0; width: 100%; height: 0;
+            z-index: 2; /* Sit on top of bank */
+        }
+        
+        .tree { 
+            position: absolute; bottom: -10px; 
+            font-size: 5rem; color: #15803d; 
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.4));
+            transform-origin: bottom center;
+        }
+        
+        .tree:hover { transform: scale(1.1); transition: transform 0.2s; }
+
+        /* --- WATER --- */
+        .river-container {
+            position: absolute; bottom: 0; width: 100%; height: 35%;
+            background: linear-gradient(180deg, var(--water-blue) 0%, #0c4a6e 100%);
+            transition: height 3s ease-in-out, background 1s ease;
+            z-index: 5; border-top: 3px solid rgba(255,255,255,0.4);
+        }
+
+        .tidal-active { animation: tideCycle 10s ease-in-out infinite; }
+        @keyframes tideCycle {
+            0%, 100% { height: 35%; } /* Low Tide */
+            50% { height: 50%; } /* High Tide */
+        }
+
+        .algae-layer {
+            position: absolute; inset: 0; background: var(--water-algae);
+            mix-blend-mode: multiply; opacity: 0; transition: opacity 1s; pointer-events: none;
+        }
+
+        /* Objects */
+        .obj { position: absolute; transition: all 0.5s; }
+        
+        .fish { 
+            font-size: 1.5rem; color: #7dd3fc; z-index: 6; 
+            animation: swim 12s linear infinite; 
+        }
+        .fish.dead { transform: rotate(180deg) translateY(-10px) !important; animation: floatDead 5s infinite ease-in-out !important; color: #94a3b8; }
+        @keyframes swim { from {left: -10%;} to {left: 110%;} }
+        @keyframes floatDead { 0%,100% { margin-top: 0; } 50% { margin-top: -10px; } }
+
+        .trash { color: #cbd5e1; font-size: 1.2rem; animation: bob 2s infinite; z-index: 7; top: 5%; }
+        @keyframes bob { 0%,100% {transform:translateY(0);} 50% {transform:translateY(5px);} }
+
+        .leaf { color: var(--leaf); font-size: 1rem; z-index: 6; bottom: 5%; opacity: 0.8; animation: settle 2s ease-out forwards; }
+        @keyframes settle { from { bottom: 50%; } to { bottom: 5%; } }
+
+        /* --- DASHBOARD --- */
+        .dashboard {
+            height: 45%; background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid #475569;
+            display: grid; grid-template-columns: 300px 1fr 300px;
+        }
+
+        .panel { padding: 20px; border-right: 1px solid #334155; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        h2 { font-size: 0.9rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; margin: 0 0 5px 0; border-bottom: 1px solid #475569; padding-bottom: 5px; }
+
+        .slider-row { margin-bottom: 15px; }
+        .slider-header { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; font-weight: 600; }
+        input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+        
+        .tide-toggle {
+            display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; cursor: pointer;
+        }
+        
+        .btn-clean {
+            background: #15803d; color: white; border: none; padding: 12px; border-radius: 6px;
+            font-weight: bold; cursor: pointer; margin-top: auto; transition: transform 0.1s;
+        }
+        .btn-clean:hover { background: #166534; transform: translateY(-2px); }
+
+        .metric-row { display: flex; justify-content: space-between; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 0.9rem; }
+        .val-good { color: #4ade80; font-weight: bold; }
+        .val-bad { color: #ef4444; font-weight: bold; }
+
+        .info-card { font-size: 0.9rem; line-height: 1.5; color: #cbd5e1; }
+        .concept-tag { 
+            display: inline-block; font-size: 0.7rem; background: #334155; 
+            padding: 2px 6px; border-radius: 4px; margin-right: 5px; margin-bottom: 5px; border: 1px solid #475569;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="viewport">
+    
+    <!-- UPDATED SKYLINE -->
+    <div class="skyline">
+        <div class="generic-tall"></div>
+        <div class="generic-short"></div>
+        
+        <!-- BU CDS (Jenga Building) -->
+        <div class="bu-cds">
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+            <div class="cds-block"></div>
+        </div>
+
+        <!-- Landmarks -->
+        <div class="pru"></div>
+        <div class="hancock"></div>
+        <div class="citgo-container">
+            <div class="citgo-sign"><div class="citgo-tri"></div></div>
+            <div class="citgo-post"></div>
+        </div>
+    </div>
+
+    <!-- LAND (Fixed Trees) -->
+    <div class="bank">
+        <div class="roots"></div>
+    </div>
+
+    <!-- TREES (Moved out of bank to prevent cutting off) -->
+    <div class="vegetation-layer">
+        <i class="fa-solid fa-tree tree" style="left: 5%; font-size: 6rem;"></i>
+        <i class="fa-solid fa-tree tree" style="left: 20%; font-size: 5rem;"></i>
+        <i class="fa-solid fa-tree tree" style="left: 40%; font-size: 4rem; color: #166534;"></i>
+        <i class="fa-solid fa-tree tree" style="left: 80%; font-size: 5.5rem; color: #d97706;"></i> <!-- Autumn Tree -->
+    </div>
+
+    <!-- THE RIVER -->
+    <div class="river-container" id="river">
+        <div class="algae-layer" id="algaeOverlay"></div>
+        <div id="entityLayer"></div>
+    </div>
+</div>
+
+<div class="dashboard">
+    <!-- CONTROLS -->
+    <div class="panel">
+        <h2>Lab Controls</h2>
+        
+        <div class="slider-row">
+            <div class="slider-header">
+                <span><i class="fa-solid fa-bottle-water"></i> Anthropogenic (Trash)</span>
+                <span id="lblTrash">0%</span>
+            </div>
+            <input type="range" id="inTrash" min="0" max="100" value="0" oninput="updateSim()">
+        </div>
+
+        <div class="slider-row">
+            <div class="slider-header">
+                <span><i class="fa-brands fa-canadian-maple-leaf"></i> Terrigenous (Leaves)</span>
+                <span id="lblNutri">0%</span>
+            </div>
+            <input type="range" id="inNutri" min="0" max="100" value="0" oninput="updateSim()">
+        </div>
+
+        <div class="tide-toggle" onclick="toggleTide()">
+            <input type="checkbox" id="chkTide" style="width:auto;">
+            <div>
+                <strong>Activate Tides</strong><br>
+                <span style="font-size:0.8rem; color:#94a3b8">Simulate Estuarine Mixing</span>
+            </div>
+        </div>
+
+        <button class="btn-clean" onclick="volunteerAction()">
+            <i class="fa-solid fa-hands-holding-circle"></i> Run Volunteer Cleanup
+        </button>
+    </div>
+
+    <!-- EDUCATION -->
+    <div class="panel">
+        <h2>Oceanography Observations</h2>
+        <div id="eduContent" class="info-card">
+            <h3 style="color: #4ade80">Healthy Estuary</h3>
+            <p>The Charles River is currently stable.<br><br>
+            <span class="concept-tag">Laminar Flow</span> Water is moving smoothly.<br>
+            <span class="concept-tag">Bank Stability</span> Vegetation roots are preventing erosion.<br>
+            <span class="concept-tag">Oxygen Transfer</span> Surface mixing supports aerobic life.</p>
+        </div>
+    </div>
+
+    <!-- DATA -->
+    <div class="panel">
+        <h2>Water Chemistry</h2>
+        <div class="metric-row">
+            <span>Dissolved Oxygen (DO)</span>
+            <span id="valDO" class="val-good">9.5 mg/L</span>
+        </div>
+        <div class="metric-row">
+            <span>Turbidity</span>
+            <span id="valTurb">1.2 NTU</span>
+        </div>
+        <div class="metric-row">
+            <span>pH Level</span>
+            <span id="valPH">7.4</span>
+        </div>
+        <div class="metric-row">
+            <span>BOD Load</span>
+            <span id="valBOD">Low</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ui = {
+        river: document.getElementById('river'),
+        layer: document.getElementById('entityLayer'),
+        algae: document.getElementById('algaeOverlay'),
+        trashInput: document.getElementById('inTrash'),
+        nutriInput: document.getElementById('inNutri'),
+        tideCheck: document.getElementById('chkTide'),
+        edu: document.getElementById('eduContent'),
+        lblTrash: document.getElementById('lblTrash'),
+        lblNutri: document.getElementById('lblNutri'),
+        valDO: document.getElementById('valDO'),
+        valTurb: document.getElementById('valTurb'),
+        valPH: document.getElementById('valPH'),
+        valBOD: document.getElementById('valBOD')
+    };
+
+    let fishList = [];
+    let trashList = [];
+    let leafList = [];
+
+    window.onload = () => {
+        spawnFish(8);
+        updateSim();
+    };
+
+    function updateSim() {
+        const trashLevel = parseInt(ui.trashInput.value);
+        const nutriLevel = parseInt(ui.nutriInput.value);
+
+        ui.lblTrash.innerText = trashLevel + "%";
+        ui.lblNutri.innerText = nutriLevel + "%";
+
+        // Chemistry Logic
+        let DO = 10.0 - (nutriLevel * 0.095); 
+        if(DO < 0.5) DO = 0.5;
+        let turb = 1.0 + (nutriLevel * 0.8) + (trashLevel * 0.2);
+        let ph = 7.4;
+        if(nutriLevel > 60) ph = 8.5;
+
+        // Visuals
+        let algaeOp = 0;
+        if(nutriLevel > 40) algaeOp = (nutriLevel - 40) / 60;
+        ui.algae.style.opacity = algaeOp;
+
+        renderObjects(trashLevel, nutriLevel);
+        updateFish(DO);
+
+        // Text
+        ui.valDO.innerText = DO.toFixed(1) + " mg/L";
+        ui.valDO.className = DO < 4 ? "val-bad" : "val-good";
+        ui.valTurb.innerText = turb.toFixed(1) + " NTU";
+        ui.valPH.innerText = ph;
+        ui.valBOD.innerText = nutriLevel > 50 ? "CRITICAL" : "Normal";
+        ui.valBOD.className = nutriLevel > 50 ? "val-bad" : "val-good";
+
+        generateContext(trashLevel, nutriLevel, DO);
+    }
+
+    function renderObjects(trashPct, nutriPct) {
+        const targetTrash = Math.floor(trashPct / 5);
+        const targetLeaves = Math.floor(nutriPct / 5);
+
+        manageEntities(trashList, targetTrash, 'fa-bottle-water', 'trash', 'top: 10%');
+        manageEntities(leafList, targetLeaves, 'fa-leaf', 'leaf', 'bottom: 5%');
+    }
+
+    function manageEntities(arr, target, icon, cls, posStyle) {
+        while(arr.length < target) {
+            const el = document.createElement('i');
+            el.className = `fa-solid ${icon} obj ${cls}`;
+            el.style.cssText = `left: ${Math.random()*90}%; ${posStyle}; animation-delay: -${Math.random()*5}s`;
+            ui.layer.appendChild(el);
+            arr.push(el);
+        }
+        while(arr.length > target) {
+            const el = arr.pop();
+            el.remove();
+        }
+    }
+
+    function spawnFish(count) {
+        for(let i=0; i<count; i++) {
+            const el = document.createElement('i');
+            el.className = "fa-solid fa-fish obj fish";
+            el.style.top = (30 + Math.random()*50) + "%";
+            el.style.left = Math.random()*100 + "%";
+            el.style.animationDuration = (10 + Math.random()*10) + "s";
+            ui.layer.appendChild(el);
+            fishList.push(el);
+        }
+    }
+
+    function updateFish(DO) {
+        fishList.forEach(f => {
+            if(DO < 3.0) {
+                if(!f.classList.contains('dead')) f.classList.add('dead');
+            } else {
+                if(f.classList.contains('dead')) f.classList.remove('dead');
+            }
+        });
+    }
+
+    function toggleTide() {
+        if(ui.tideCheck.checked) ui.river.classList.add('tidal-active');
+        else ui.river.classList.remove('tidal-active');
+        generateContext(parseInt(ui.trashInput.value), parseInt(ui.nutriInput.value), parseFloat(ui.valDO.innerText));
+    }
+
+    function generateContext(trash, nutri, DO) {
+        let title = "";
+        let html = "";
+
+        if(nutri > 70) {
+            title = `<h3 style="color:#ef4444">⚠️ Eutrophication Event</h3>`;
+            html = `
+                <span class="concept-tag">Nutrient Loading</span> Excess N/P from leaves.<br>
+                <span class="concept-tag">Hypoxia</span> DO is ${DO.toFixed(1)} mg/L. Fish are suffocating.<br>
+                <span class="concept-tag">Non-Conservative Ions</span> Nutrients consumed by algae bloom.<br>
+                <p style="font-size:0.8rem; margin-top:10px">Bacteria are consuming all oxygen to break down the organic matter.</p>
+            `;
+        } else if (trash > 60) {
+            title = `<h3 style="color:#facc15">⚠️ Anthropogenic Accumulation</h3>`;
+            html = `
+                <span class="concept-tag">Microplastics</span> Plastics degrading in UV light.<br>
+                <span class="concept-tag">Current Transport</span> Trash floating on surface currents.<br>
+                <p style="font-size:0.8rem; margin-top:10px">Physical debris does not decompose and enters the food web.</p>
+            `;
+        } else if (ui.tideCheck.checked) {
+            title = `<h3 style="color:#38bdf8">🌊 Tidal Estuary Mode</h3>`;
+            html = `
+                <span class="concept-tag">Mixing</span> Fresh river water meets Boston Harbor salt.<br>
+                <span class="concept-tag">Sorting</span> Currents sort material by weight.<br>
+                <span class="concept-tag">Erosion</span> Rising/falling water shapes the banks.<br>
+            `;
+        } else {
+            title = `<h3 style="color:#4ade80">✅ Stable Ecosystem</h3>`;
+            html = `
+                <span class="concept-tag">Stable Banks</span> Roots protecting shoreline.<br>
+                <span class="concept-tag">Laminar Flow</span> Steady movement towards harbor.<br>
+                <span class="concept-tag">Aerobic</span> Sufficient oxygen for biodiversity.<br>
+            `;
+        }
+        ui.edu.innerHTML = title + html;
+    }
+
+    function volunteerAction() {
+        const interval = setInterval(() => {
+            let t = parseInt(ui.trashInput.value);
+            let n = parseInt(ui.nutriInput.value);
+            if(t > 0) ui.trashInput.value = t - 2;
+            if(n > 0) ui.nutriInput.value = n - 2;
+            updateSim();
+            if(t <= 0 && n <= 0) {
+                clearInterval(interval);
+                const n = document.createElement('div');
+                n.innerText = "CRC TEAM: CLEANUP COMPLETE";
+                n.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(21,128,61,0.9); color:white; padding:20px; border-radius:10px; z-index:100; font-weight:bold;";
+                document.body.appendChild(n);
+                setTimeout(()=>n.remove(), 2000);
+            }
+        }, 30);
+    }
+</script>
+</body>
+</html>
