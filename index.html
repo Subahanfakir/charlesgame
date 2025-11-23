@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charles River Estuary Lab: Urban Oceanography</title>
+    <title>Charles River Basin Lab: Controlled Basin</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -121,11 +121,7 @@
             z-index: 5; border-top: 3px solid rgba(255,255,255,0.4);
         }
 
-        .tidal-active { animation: tideCycle 10s ease-in-out infinite; }
-        @keyframes tideCycle {
-            0%, 100% { height: 35%; } /* Low Tide */
-            50% { height: 50%; } /* High Tide */
-        }
+        /* Tidal animation removed — Charles River is a managed basin controlled by a dam */
 
         .algae-layer {
             position: absolute; inset: 0; background: var(--water-algae);
@@ -258,11 +254,10 @@
             <input type="range" id="inNutri" min="0" max="100" value="0" oninput="updateSim()">
         </div>
 
-        <div class="tide-toggle" onclick="toggleTide()">
-            <input type="checkbox" id="chkTide" style="width:auto;">
+        <div class="tide-toggle" title="Charles River is a controlled basin; tidal forcing is negligible.">
             <div>
-                <strong>Activate Tides</strong><br>
-                <span style="font-size:0.8rem; color:#94a3b8">Simulate Estuarine Mixing</span>
+                <strong>Controlled Basin</strong><br>
+                <span style="font-size:0.8rem; color:#94a3b8">No tidal forcing — managed by dam</span>
             </div>
         </div>
 
@@ -275,7 +270,7 @@
     <div class="panel">
         <h2>Oceanography Observations</h2>
         <div id="eduContent" class="info-card">
-            <h3 style="color: #4ade80">Healthy Estuary</h3>
+            <h3 style="color: #4ade80">Healthy Basin</h3>
             <p>The Charles River is currently stable.<br><br>
             <span class="concept-tag">Laminar Flow</span> Water is moving smoothly.<br>
             <span class="concept-tag">Bank Stability</span> Vegetation roots are preventing erosion.<br>
@@ -312,7 +307,7 @@
         algae: document.getElementById('algaeOverlay'),
         trashInput: document.getElementById('inTrash'),
         nutriInput: document.getElementById('inNutri'),
-        tideCheck: document.getElementById('chkTide'),
+        
         edu: document.getElementById('eduContent'),
         lblTrash: document.getElementById('lblTrash'),
         lblNutri: document.getElementById('lblNutri'),
@@ -408,11 +403,7 @@
         });
     }
 
-    function toggleTide() {
-        if(ui.tideCheck.checked) ui.river.classList.add('tidal-active');
-        else ui.river.classList.remove('tidal-active');
-        generateContext(parseInt(ui.trashInput.value), parseInt(ui.nutriInput.value), parseFloat(ui.valDO.innerText));
-    }
+    /* Tides removed: Charles River is a controlled basin managed by a dam. */
 
     function generateContext(trash, nutri, DO) {
         let title = "";
@@ -432,13 +423,6 @@
                 <span class="concept-tag">Microplastics</span> Plastics degrading in UV light.<br>
                 <span class="concept-tag">Current Transport</span> Trash floating on surface currents.<br>
                 <p style="font-size:0.8rem; margin-top:10px">Physical debris does not decompose and enters the food web.</p>
-            `;
-        } else if (ui.tideCheck.checked) {
-            title = `<h3 style="color:#38bdf8">🌊 Tidal Estuary Mode</h3>`;
-            html = `
-                <span class="concept-tag">Mixing</span> Fresh river water meets Boston Harbor salt.<br>
-                <span class="concept-tag">Sorting</span> Currents sort material by weight.<br>
-                <span class="concept-tag">Erosion</span> Rising/falling water shapes the banks.<br>
             `;
         } else {
             title = `<h3 style="color:#4ade80">✅ Stable Ecosystem</h3>`;
